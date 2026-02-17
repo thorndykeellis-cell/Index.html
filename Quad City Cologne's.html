@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<title>Quad City Colognes</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quad City Cologne's | Premium Admin & Shop</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-storage-compat.js"></script>
+
+    <style>
+        :root { 
+            --gold: #d4af37; 
+            --black: #050505; 
+            --card-bg: #111; 
+            --input-bg: #1a1a1a;
+        }
+
+        body { 
+            background: var(--black); 
+            color: white; 
+            font-family: 'Helvetica Neue', sans-serif; 
+            margin: 0; 
+            overflow-x: hidden;
+        }
+
+        /* Hero Section */
+        header { 
+            padding: 100px 20px; 
+            text-align: center; 
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?q=80&w=2000&auto=format&fit=crop');
+            background-size: cover;
+            border-bottom: 3px solid var(--gold);
+        }
+
+        h1 { 
+            font-size: 5rem; 
+            letter-spacing: 20px; 
+            color: var(--gold); 
+            margin: 0; 
+            text-transform: uppercase;
+            text-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* Admin Controls */
+        #admin-panel { 
+            display: none; 
+            background: #fff; 
+            color: #000; 
+            padding: 40px; 
+            position: sticky; 
+            top: 0; 
+            z-index: 1000; 
+            border-bottom: 8px solid var(--gold);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        /* Product Display */
+        .container { max-width: 1400px; margin: auto; padding: 60px 20px; }
+        
+        .inventory-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+            gap: 40px; 
+            margin-bottom: 100px; 
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            border: 1px solid #222; 
+            overflow: hidden;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .card:hover { border-color: var(--gold); transform: scale(1.02); }
+
+        .product-img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            background: #222;
+        }
+
+        .card-content { padding: 30px; text-align: center; }
+        .card h3 { font-size: 2.2rem; color: var(--gold); margin: 10px 0; text-transform: uppercase; }
+        .card .price { font-size: 1.8rem; letter-spacing: 2px; margin-bottom: 10px; }
+
+        /* Request Form */
+        .order-section { 
+            background: #000; 
+            padding: 80px; 
+            border: 1px solid var(--gold);
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .big-input { 
+            width: 100%; 
+            padding: 25px; 
+            margin-bottom: 25px; 
+            background: var(--input-bg); 
+            border: 1px solid #333; 
+            color: white; 
+            font-size: 1.3rem; 
+            box-sizing: border-box;
+        }
+
+        .order-btn { 
+            background: var(--gold); 
+            color: black; 
+            border: none; 
+            padding: 30px; 
+            width: 100%; 
+            font-size: 1.8rem; 
+            font-weight: 900; 
+            cursor: pointer; 
+            transition: 0.3s;
+        }
+
+        .order-btn:hover { background: #fff; letter-spacing: 5px; }
+
+        .login-trigger { position: absolute; top: 20px; right: 20px; color: var(--gold); cursor: pointer; opacity: 0.3; }
+    </style>
+</head>
+<body>
+
+<div class="login-trigger" onclick="login()">Staff Access</div>
+
+<div id="admin-panel">
+    <h2 style="margin-top:0">ADMIN PORTAL: Update Stock & Images</h2>
+    <div class="admin-grid">
+        <input type="text" id="new-name" placeholder="Cologne Name" class="big-input" style="color:black; margin:0">
+        <input type="text" id="new-cost" placeholder="Price (e.g. $125)" class="big-input" style="color:black; margin:0">
+        <input type="number" id="new-stock" placeholder="Stock Qty" class="big-input" style="color:black; margin:0">
+        <input type="file" id="new-image" class="big-input" style="color:black; margin:0; font-size: 0.8rem;">
+        <button onclick="handleUpload()" class="order-btn" style="padding:10px; font-size: 1rem;">Upload & Sync</button>
+    </div>
+</div>
+
+<header>
+    <h1>QUAD CITY</h1>
+</header>
+
+<div class="container">
+    <div class="inventory-grid" id="store-display">
+        </div>
+
+    <div class="order-section">
+        <h2 style="font-size: 3rem; color: var(--gold); text-align: center; margin-top:0;">ORDER DELIVERY</h2>
+        <form action="https://formspree.io/f/thorndykeellis@gmail.com" method="POST">
+            <label>Select Scent</label>
+            <select name="cologne" id="cologne-select" class="big-input" required></select>
+
+            <label>Drop-off Location</label>
+            <input type="text" name="location" placeholder="Address, City, State" class="big-input" required>
+
+            <label>Your Email</label>
+            <input type="email" name="email" placeholder="email@address.com" class="big-input" required>
+
+            <button type="submit" class="order-btn">SEND REQUEST</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // FILL IN YOUR FIREBASE DETAILS
+    const firebaseConfig = {
+        apiKey: "YOUR_KEY",
+        authDomain: "YOUR_PROJECT.firebaseapp.com",
+        databaseURL: "https://YOUR_PROJECT.firebaseio.com",
+        projectId: "YOUR_PROJECT",
+        storageBucket: "YOUR_PROJECT.appspot.com",
+        messagingSenderId: "YOUR_SENDER",
+        appId: "YOUR_APP"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+    const storage = firebase.storage();
+
+    function login() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).then((result) => {
+            if (result.user.email === "thorndykeellis@gmail.com") {
+                document.getElementById('admin-panel').style.display = 'block';
+            }
+        });
+    }
+
+    async function handleUpload() {
+        const name = document.getElementById('new-name').value;
+        const cost = document.getElementById('new-cost').value;
+        const stock = document.getElementById('new-stock').value;
+        const file = document.getElementById('new-image').files[0];
+
+        if(!name || !cost) return alert("Name and Cost required");
+
+        let imageUrl = "";
+        if(file) {
+            const storageRef = storage.ref(`colognes/${name}`);
+            await storageRef.put(file);
+            imageUrl = await storageRef.getDownloadURL();
+        }
+
+        db.ref('inventory/' + name).set({
+            cost: cost,
+            stock: stock,
+            image: imageUrl || "https://via.placeholder.com/400"
+        });
+        alert("Store updated successfully!");
+    }
+
+    db.ref('inventory').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const display = document.getElementById('store-display');
+        const select = document.getElementById('cologne-select');
+        display.innerHTML = ''; select.innerHTML = '';
+
+        for (let key in data) {
+            display.innerHTML += `
+                <div class="card">
+                    <img src="${data[key].image}" class="product-img">
+                    <div class="card-content">
+                        <h3>${key}</h3>
+                        <div class="price">${data[key].cost}</div>
+                        <div style="color: #666">STOCK AVAILABLE: ${data[key].stock}</div>
+                    </div>
+                </div>
+            `;
+            select.innerHTML += `<option value="${key}">${key} - ${data[key].cost}</option>`;
+        }
+    });
+</script>
+
+</body>
+</html>
